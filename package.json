@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@openai/codex": "^0.159.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "^3.9.9",
+    "vite": "^8.3.1"
+  },
+  "name": "lumen-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}
