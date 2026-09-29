@@ -1,0 +1,3 @@
+export function updateTitle(p) {
+  document.title = `${{ "/home": "Sua voz transforma a cidade", "/login": "Entrar", "/cadastro": "Criar conta", "/dashboard": "Dashboard", "/nova-denuncia": "Nova denúncia", "/denuncia-anonima": "Denúncia anônima", "/estatisticas": "Estatísticas", "/minhas-denuncias": "Denúncias", "/notificacoes": "Notificações", "/sobre": "Sobre a LUMEN", "/esqueci-senha": "Recuperar senha", "/configuracoes": "Configurações", "/termos-de-uso": "Termos de Uso", "/politica-de-privacidade": "Política de Privacidade", "/denuncia-enviada": "Denúncia enviada" }[p] || "LUMEN"} — LUMEN`;
+}
