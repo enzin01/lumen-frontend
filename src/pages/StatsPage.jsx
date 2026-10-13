@@ -1,104 +1,332 @@
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import { Link } from "../components/Link.jsx";
 import { ButtonLink } from "../components/ButtonLink.jsx";
 import { Header } from "../components/Header.jsx";
 import { AppStats } from "../components/AppStats.jsx";
 import { RecentItems } from "../components/RecentItems.jsx";
-import { useLumen } from "../state";
-import { categories } from "../utils";
-import { Fragment } from "react";
+import { getDenuncias } from "../services/api.js";
+
 export function StatsPage() {
-  const { data, counts } = useLumen();
-  const c = counts();
-  const grouped = categories
-    .map((cat, itemIndex) => (
-      <Fragment key={itemIndex}>
-        {[cat[2], data.reports.filter((r) => r.category === cat[0]).length]}
-      </Fragment>
-    ))
-    .filter((row) => row[1]);
-  const h = <Header inside={true} />;
+  const [denuncias, setDenuncias] =
+    useState([]);
+
+  const [carregando, setCarregando] =
+    useState(true);
+
+  const [erro, setErro] =
+    useState("");
+
+  useEffect(() => {
+    async function carregarDenuncias() {
+      try {
+        setCarregando(true);
+        setErro("");
+
+        const resposta =
+          await getDenuncias();
+
+        setDenuncias(resposta);
+      } catch (error) {
+        console.error(error);
+
+        setErro(
+          "Não foi possível carregar as estatísticas.",
+        );
+      } finally {
+        setCarregando(false);
+      }
+    }
+
+    carregarDenuncias();
+  }, []);
+
+  const categoriasAgrupadas = Object.entries(
+    denuncias.reduce(
+      (resultado, denuncia) => {
+        const nome =
+          denuncia.categoria?.nome ||
+          "Sem categoria";
+
+        resultado[nome] =
+          (resultado[nome] || 0) + 1;
+
+        return resultado;
+      },
+      {},
+    ),
+  ).sort((a, b) => b[1] - a[1]);
+
+  const bairrosAgrupados = Object.entries(
+    denuncias.reduce(
+      (resultado, denuncia) => {
+        const bairro =
+          denuncia.localizacao?.bairro;
+
+        if (!bairro) {
+          return resultado;
+        }
+
+        resultado[bairro] =
+          (resultado[bairro] || 0) + 1;
+
+        return resultado;
+      },
+      {},
+    ),
+  ).sort((a, b) => b[1] - a[1]);
+
+  const statusAgrupados = [
+    [
+      "Enviadas",
+      denuncias.filter(
+        (denuncia) =>
+          denuncia.statusAtual
+            ?.codigoStatus === "ENVIADA",
+      ).length,
+    ],
+    [
+      "Em análise",
+      denuncias.filter(
+        (denuncia) =>
+          denuncia.statusAtual
+            ?.codigoStatus ===
+          "EM_ANALISE",
+      ).length,
+    ],
+    [
+      "Em andamento",
+      denuncias.filter(
+        (denuncia) =>
+          denuncia.statusAtual
+            ?.codigoStatus ===
+          "EM_ANDAMENTO",
+      ).length,
+    ],
+    [
+      "Resolvidas",
+      denuncias.filter(
+        (denuncia) =>
+          denuncia.statusAtual
+            ?.codigoStatus ===
+          "RESOLVIDA",
+      ).length,
+    ],
+  ];
+
+  const denunciasRecentes = [
+    ...denuncias,
+  ].sort(
+    (a, b) =>
+      new Date(b.dataRegistro) -
+      new Date(a.dataRegistro),
+  );
+
   return (
     <>
-      {h}
+      <Header inside={true} />
+
       <main className="dashboard-page">
         <div className="container">
           <div className="page-heading">
             <div>
-              <h1>{"Estatísticas da Cidade"}</h1>
+              <h1>
+                {"Estatísticas da Cidade"}
+              </h1>
+
               <p>
                 {
                   "Dados reais com base nas denúncias registradas na plataforma."
                 }
               </p>
             </div>
+
             <ButtonLink
               url={"/nova-denuncia"}
               label={"+ Nova Denúncia"}
-              cls={"btn-primary btn-small"}
+              cls={
+                "btn-primary btn-small"
+              }
             />
           </div>
-          <div className="stats-grid">
-            <AppStats />
-          </div>
-          <div className="two-columns">
-            <section className="panel">
-              <h3>{"Relatórios por Categoria"}</h3>
-              {grouped.length ? (
-                grouped.map(([label, value], itemIndex) => (
-                  <div className="number-line" key={itemIndex}>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
-                  </div>
-                ))
-              ) : (
-                <p className="muted">{"Nenhuma denúncia registrada ainda."}</p>
-              )}
-            </section>
-            <section className="panel">
-              <h3>{"Relatórios por Bairro"}</h3>
-              {data.reports.some((r) => r.district) ? (
-                [
-                  ...new Set(
-                    data.reports
-                      .map((r, itemIndex) => (
-                        <Fragment key={itemIndex}>{r.district}</Fragment>
-                      ))
-                      .filter(Boolean),
-                  ),
-                ].map((d, itemIndex) => (
-                  <div className="number-line" key={itemIndex}>
-                    <span>{d}</span>
-                    <strong>
-                      {data.reports.filter((r) => r.district === d).length}
-                    </strong>
-                  </div>
-                ))
-              ) : (
-                <p className="muted">
-                  {"Nenhuma denúncia com bairro informado."}
-                </p>
-              )}
-            </section>
-          </div>
-          <section className="panel">
-            <div className="panel-head">
-              <h3>{"Denúncias Registradas"}</h3>
-              <Link url={"/minhas-denuncias"} label={"Ver todas →"} />
+
+          {erro && (
+            <div className="empty-inline">
+              <p>{erro}</p>
             </div>
-            {data.reports.length ? (
-              <RecentItems reports={[...data.reports].reverse()} />
-            ) : (
-              <div className="empty-inline">
-                <p>{"📭"}</p>
-                <p>{"Nenhuma denúncia registrada ainda."}</p>
-                <ButtonLink
-                  url={"/minhas-denuncias"}
-                  label={"Ver todos os relatórios"}
-                  cls={"btn-primary btn-small"}
+          )}
+
+          {carregando ? (
+            <div className="empty-state">
+              <div>{"⏳"}</div>
+
+              <h3>
+                {
+                  "Carregando estatísticas..."
+                }
+              </h3>
+            </div>
+          ) : (
+            <>
+              <div className="stats-grid">
+                <AppStats
+                  denuncias={denuncias}
                 />
               </div>
-            )}
-          </section>
+
+              <div className="two-columns">
+                <section className="panel">
+                  <h3>
+                    {
+                      "Relatórios por Categoria"
+                    }
+                  </h3>
+
+                  {categoriasAgrupadas.length ? (
+                    categoriasAgrupadas.map(
+                      (
+                        [label, value],
+                        itemIndex,
+                      ) => (
+                        <div
+                          className="number-line"
+                          key={itemIndex}
+                        >
+                          <span>
+                            {label}
+                          </span>
+
+                          <strong>
+                            {value}
+                          </strong>
+                        </div>
+                      ),
+                    )
+                  ) : (
+                    <p className="muted">
+                      {
+                        "Nenhuma denúncia registrada ainda."
+                      }
+                    </p>
+                  )}
+                </section>
+
+                <section className="panel">
+                  <h3>
+                    {
+                      "Relatórios por Bairro"
+                    }
+                  </h3>
+
+                  {bairrosAgrupados.length ? (
+                    bairrosAgrupados.map(
+                      (
+                        [bairro, value],
+                        itemIndex,
+                      ) => (
+                        <div
+                          className="number-line"
+                          key={itemIndex}
+                        >
+                          <span>
+                            {bairro}
+                          </span>
+
+                          <strong>
+                            {value}
+                          </strong>
+                        </div>
+                      ),
+                    )
+                  ) : (
+                    <p className="muted">
+                      {
+                        "Nenhuma denúncia com bairro informado."
+                      }
+                    </p>
+                  )}
+                </section>
+              </div>
+
+              <section className="panel">
+                <h3>
+                  {
+                    "Relatórios por Status"
+                  }
+                </h3>
+
+                {statusAgrupados.map(
+                  (
+                    [label, value],
+                    itemIndex,
+                  ) => (
+                    <div
+                      className="number-line"
+                      key={itemIndex}
+                    >
+                      <span>
+                        {label}
+                      </span>
+
+                      <strong>
+                        {value}
+                      </strong>
+                    </div>
+                  ),
+                )}
+              </section>
+
+              <section className="panel">
+                <div className="panel-head">
+                  <h3>
+                    {
+                      "Denúncias Registradas"
+                    }
+                  </h3>
+
+                  <Link
+                    url={
+                      "/minhas-denuncias"
+                    }
+                    label={"Ver todas →"}
+                  />
+                </div>
+
+                {denuncias.length ? (
+                  <RecentItems
+                    reports={
+                      denunciasRecentes
+                    }
+                  />
+                ) : (
+                  <div className="empty-inline">
+                    <p>{"📭"}</p>
+
+                    <p>
+                      {
+                        "Nenhuma denúncia registrada ainda."
+                      }
+                    </p>
+
+                    <ButtonLink
+                      url={
+                        "/minhas-denuncias"
+                      }
+                      label={
+                        "Ver todos os relatórios"
+                      }
+                      cls={
+                        "btn-primary btn-small"
+                      }
+                    />
+                  </div>
+                )}
+              </section>
+            </>
+          )}
         </div>
       </main>
     </>
