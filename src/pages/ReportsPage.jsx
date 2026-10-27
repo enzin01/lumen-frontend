@@ -4,7 +4,11 @@ import { Link } from "../components/Link.jsx";
 import { ButtonLink } from "../components/ButtonLink.jsx";
 import { Header } from "../components/Header.jsx";
 import { useLumen } from "../state";
-import { getDenuncias } from "../services/api.js";
+import {
+  atualizarDenuncia,
+  excluirDenuncia,
+  getDenuncias,
+} from "../services/api.js";
 
 export function ReportsPage() {
   const { data, listScope, listFilter } = useLumen();
@@ -12,6 +16,10 @@ export function ReportsPage() {
   const [denuncias, setDenuncias] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const [editandoId, setEditandoId] = useState(null);
+  const [tituloEdicao, setTituloEdicao] = useState("");
+  const [descricaoEdicao, setDescricaoEdicao] = useState("");
+  const [salvandoId, setSalvandoId] = useState(null);
 
   useEffect(() => {
     async function carregarDenuncias() {
@@ -20,7 +28,6 @@ export function ReportsPage() {
         setErro("");
 
         const resposta = await getDenuncias();
-
         setDenuncias(resposta);
       } catch (error) {
         console.error(error);
@@ -92,6 +99,96 @@ export function ReportsPage() {
     ).padStart(6, "0")}`;
   }
 
+  function iniciarEdicao(denuncia) {
+    setEditandoId(denuncia.idDenuncia);
+    setTituloEdicao(denuncia.titulo || "");
+    setDescricaoEdicao(denuncia.descricao || "");
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setTituloEdicao("");
+    setDescricaoEdicao("");
+  }
+
+  async function salvarEdicao(denuncia) {
+    if (!tituloEdicao.trim() || !descricaoEdicao.trim()) {
+      alert("Preencha o título e a descrição.");
+      return;
+    }
+
+    try {
+      setSalvandoId(denuncia.idDenuncia);
+
+      const atualizada = await atualizarDenuncia(
+        denuncia.idDenuncia,
+        {
+          titulo: tituloEdicao.trim(),
+          descricao: descricaoEdicao.trim(),
+          anonima: denuncia.anonima,
+          usuario: denuncia.usuario
+            ? { idUsuario: denuncia.usuario.idUsuario }
+            : null,
+          categoria: {
+            idCategoria: denuncia.categoria.idCategoria,
+          },
+          localizacao: {
+            idLocalizacao: denuncia.localizacao.idLocalizacao,
+          },
+          statusAtual: {
+            idStatus: denuncia.statusAtual.idStatus,
+          },
+        },
+      );
+
+      setDenuncias((anteriores) =>
+        anteriores.map((item) =>
+          item.idDenuncia === atualizada.idDenuncia
+            ? atualizada
+            : item,
+        ),
+      );
+
+      cancelarEdicao();
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível atualizar a denúncia.");
+    } finally {
+      setSalvandoId(null);
+    }
+  }
+
+  async function removerDenuncia(denuncia) {
+    const confirmou = window.confirm(
+      `Tem certeza que deseja excluir a denúncia "${denuncia.titulo}"?`,
+    );
+
+    if (!confirmou) return;
+
+    try {
+      setSalvandoId(denuncia.idDenuncia);
+      await excluirDenuncia(denuncia.idDenuncia);
+
+      setDenuncias((anteriores) =>
+        anteriores.filter(
+          (item) =>
+            item.idDenuncia !== denuncia.idDenuncia,
+        ),
+      );
+
+      if (editandoId === denuncia.idDenuncia) {
+        cancelarEdicao();
+      }
+    } catch (error) {
+      console.error(error);
+      alert(
+        "Não foi possível excluir a denúncia. Se ela possuir histórico ou imagem vinculada, exclua esses registros primeiro.",
+      );
+    } finally {
+      setSalvandoId(null);
+    }
+  }
+
   const minhasDenuncias = denuncias.filter(
     (denuncia) =>
       denuncia.usuario?.idUsuario ===
@@ -113,23 +210,18 @@ export function ReportsPage() {
 
   const contadores = {
     total: todas.length,
-
     enviada: todas.filter(
       (denuncia) =>
         getStatusCode(denuncia) === "ENVIADA",
     ).length,
-
     analise: todas.filter(
       (denuncia) =>
         getStatusCode(denuncia) === "EM_ANALISE",
     ).length,
-
     andamento: todas.filter(
       (denuncia) =>
-        getStatusCode(denuncia) ===
-        "EM_ANDAMENTO",
+        getStatusCode(denuncia) === "EM_ANDAMENTO",
     ).length,
-
     resolvida: todas.filter(
       (denuncia) =>
         getStatusCode(denuncia) === "RESOLVIDA",
@@ -147,7 +239,6 @@ export function ReportsPage() {
               url={"/dashboard"}
               label={"← Dashboard"}
             />
-
             <span>{"/"}</span>
           </div>
 
@@ -190,10 +281,7 @@ export function ReportsPage() {
               [contadores.total, "Total"],
               [contadores.enviada, "Enviadas"],
               [contadores.analise, "Em análise"],
-              [
-                contadores.andamento,
-                "Em andamento",
-              ],
+              [contadores.andamento, "Em andamento"],
               [contadores.resolvida, "Resolvidas"],
             ].map(([value, label], itemIndex) => (
               <button
@@ -244,56 +332,157 @@ export function ReportsPage() {
             <div className="panel report-list">
               {[...mostradas]
                 .reverse()
-                .map((denuncia) => (
-                  <article
-                    className="report-row"
-                    key={denuncia.idDenuncia}
-                  >
-                    <div className="report-symbol">
-                      {getCategoryIcon(
-                        denuncia.categoria?.nome,
-                      )}
-                    </div>
+                .map((denuncia) => {
+                  const ehMinha =
+                    denuncia.usuario?.idUsuario ===
+                    data.currentUser?.idUsuario;
 
-                    <div className="report-content">
-                      <strong>
-                        {denuncia.titulo}
-                      </strong>
+                  const editando =
+                    editandoId === denuncia.idDenuncia;
 
-                      <span>
-                        {denuncia.localizacao
-                          ?.logradouro ||
-                          "Local não informado"}
-
-                        {" · "}
-
-                        {denuncia.categoria?.nome ||
-                          "Sem categoria"}
-
-                        {" · "}
-
-                        {getProtocol(denuncia)}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`status ${getStatusClass(
-                        denuncia,
-                      )}`}
+                  return (
+                    <article
+                      className="report-row"
+                      key={denuncia.idDenuncia}
                     >
-                      {getStatus(denuncia)}
-                    </span>
-                  </article>
-                ))}
+                      <div className="report-symbol">
+                        {getCategoryIcon(
+                          denuncia.categoria?.nome,
+                        )}
+                      </div>
+
+                      <div className="report-content">
+                        {editando ? (
+                          <>
+                            <input
+                              type="text"
+                              value={tituloEdicao}
+                              onChange={(event) =>
+                                setTituloEdicao(
+                                  event.target.value,
+                                )
+                              }
+                              aria-label="Título da denúncia"
+                            />
+
+                            <textarea
+                              rows="3"
+                              value={descricaoEdicao}
+                              onChange={(event) =>
+                                setDescricaoEdicao(
+                                  event.target.value,
+                                )
+                              }
+                              aria-label="Descrição da denúncia"
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <strong>
+                              {denuncia.titulo}
+                            </strong>
+
+                            <span>
+                              {denuncia.localizacao
+                                ?.logradouro ||
+                                "Local não informado"}
+                              {" · "}
+                              {denuncia.categoria?.nome ||
+                                "Sem categoria"}
+                              {" · "}
+                              {getProtocol(denuncia)}
+                            </span>
+
+                            <span>
+                              {denuncia.descricao}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <span
+                        className={`status ${getStatusClass(
+                          denuncia,
+                        )}`}
+                      >
+                        {getStatus(denuncia)}
+                      </span>
+
+                      {ehMinha && (
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {editando ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-small"
+                                disabled={
+                                  salvandoId ===
+                                  denuncia.idDenuncia
+                                }
+                                onClick={() =>
+                                  salvarEdicao(denuncia)
+                                }
+                              >
+                                {salvandoId ===
+                                denuncia.idDenuncia
+                                  ? "Salvando..."
+                                  : "Salvar"}
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-small"
+                                onClick={cancelarEdicao}
+                              >
+                                Cancelar
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-outline btn-small"
+                                onClick={() =>
+                                  iniciarEdicao(denuncia)
+                                }
+                              >
+                                Editar
+                              </button>
+
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-small"
+                                disabled={
+                                  salvandoId ===
+                                  denuncia.idDenuncia
+                                }
+                                onClick={() =>
+                                  removerDenuncia(denuncia)
+                                }
+                              >
+                                {salvandoId ===
+                                denuncia.idDenuncia
+                                  ? "Excluindo..."
+                                  : "Excluir"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
             </div>
           ) : (
             <div className="empty-state">
               <div>{"📭"}</div>
-
-              <h3>
-                {"Nenhuma denúncia encontrada"}
-              </h3>
-
+              <h3>{"Nenhuma denúncia encontrada"}</h3>
               <p>
                 {listScope === "mine"
                   ? "Você ainda não fez nenhuma denúncia."
