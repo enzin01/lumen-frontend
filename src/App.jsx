@@ -20,6 +20,14 @@ import {
   SuccessPage,
 } from "./pages/index.js";
 
+const protectedRoutes = new Set([
+  "/dashboard",
+  "/nova-denuncia",
+  "/minhas-denuncias",
+  "/notificacoes",
+  "/configuracoes",
+]);
+
 const routes = {
   "/home": Home,
   "/": Home,
@@ -66,8 +74,13 @@ export default function App() {
   }, [setModel]);
 
   useEffect(() => {
+    if (protectedRoutes.has(route) && !data.currentUser) {
+      location.replace("#/login");
+      return;
+    }
+
     updateTitle(route);
-  }, [route]);
+  }, [route, data.currentUser]);
   useEffect(() => {
     if (!toast) return;
     const timeout = setTimeout(() => setToast(null), 3600);
