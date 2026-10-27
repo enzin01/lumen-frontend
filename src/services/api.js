@@ -56,6 +56,31 @@ export async function criarDenuncia(denuncia) {
   );
 }
 
+export async function atualizarDenuncia(id, denuncia) {
+  const response = await fetch(`${API_URL}/denuncia/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(denuncia),
+  });
+
+  return verificarResposta(
+    response,
+    "Erro ao atualizar denúncia"
+  );
+}
+
+export async function excluirDenuncia(id) {
+  const response = await fetch(`${API_URL}/denuncia/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error("Erro ao excluir denúncia");
+  }
+}
+
 export async function criarUsuario(usuario) {
   const response = await fetch(`${API_URL}/usuario`, {
     method: "POST",
