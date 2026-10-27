@@ -35,11 +35,9 @@ export function About() {
             </p>
 
             <p>
-              {"Fundada em 2026, a plataforma já conectou mais de "}
-              <strong>{"12.400 cidadãos"}</strong>
-              {" com os órgãos municipais, com uma taxa de resolução de "}
-              <strong>{"89%"}</strong>
-              {" das denúncias em menos de 5 dias."}
+              {
+                "A LUMEN foi desenvolvida em 2026 como um projeto voltado à participação cidadã, permitindo o registro e o acompanhamento de problemas urbanos de forma simples e organizada."
+              }
             </p>
           </section>
 
