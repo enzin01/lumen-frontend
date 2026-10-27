@@ -67,7 +67,6 @@ export function createActions(model, setModel, showToast) {
     for (const [id, key] of [
       ["report-address", "address"],
       ["report-district", "district"],
-      ["report-city", "city"],
       ["report-title", "title"],
       [
         "report-description",
@@ -221,8 +220,7 @@ export function createActions(model, setModel, showToast) {
       if (
         step === 2 &&
         (!reportDraft.address ||
-          !reportDraft.district ||
-          !reportDraft.city)
+          !reportDraft.district)
       ) {
         return showToast(
           "Preencha a localização.",
