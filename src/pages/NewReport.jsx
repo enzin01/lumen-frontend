@@ -140,17 +140,6 @@ export function NewReport() {
               required: true,
             }}
           />
-
-          <Field
-            label="Cidade"
-            id="report-city"
-            placeholder="Sua cidade"
-            type="text"
-            value={reportDraft.city}
-            extra={{
-              required: true,
-            }}
-          />
         </div>
       </>
     );
@@ -215,8 +204,7 @@ export function NewReport() {
             {reportDraft.address}
             {", "}
             {reportDraft.district}
-            {" · "}
-            {reportDraft.city}
+            {" · Barueri"}
           </p>
 
           <p>
