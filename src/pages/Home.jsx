@@ -50,20 +50,6 @@ export function Home() {
                   cls={"btn-outline"}
                 />
               </div>
-              <div className="hero-stats">
-                <div>
-                  <strong>{"12.4K+"}</strong>
-                  <span>{"Denúncias registradas"}</span>
-                </div>
-                <div>
-                  <strong>{"89%"}</strong>
-                  <span>{"Taxa de resolução"}</span>
-                </div>
-                <div>
-                  <strong>{"< 5 dias"}</strong>
-                  <span>{"Tempo médio"}</span>
-                </div>
-              </div>
             </div>
             <div className="hero-art">
               <img
