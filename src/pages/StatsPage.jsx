@@ -9,8 +9,12 @@ import { Header } from "../components/Header.jsx";
 import { AppStats } from "../components/AppStats.jsx";
 import { RecentItems } from "../components/RecentItems.jsx";
 import { getDenuncias } from "../services/api.js";
+import { useLumen } from "../state";
 
 export function StatsPage() {
+  const { data } = useLumen();
+  const usuarioLogado = Boolean(data.currentUser);
+
   const [denuncias, setDenuncias] =
     useState([]);
 
@@ -127,7 +131,7 @@ export function StatsPage() {
 
   return (
     <>
-      <Header inside={true} />
+      <Header inside={usuarioLogado} />
 
       <main className="dashboard-page">
         <div className="container">
@@ -144,13 +148,19 @@ export function StatsPage() {
               </p>
             </div>
 
-            <ButtonLink
-              url={"/nova-denuncia"}
-              label={"+ Nova Denúncia"}
-              cls={
-                "btn-primary btn-small"
-              }
-            />
+            {usuarioLogado ? (
+              <ButtonLink
+                url={"/nova-denuncia"}
+                label={"+ Nova Denúncia"}
+                cls={"btn-primary btn-small"}
+              />
+            ) : (
+              <ButtonLink
+                url={"/login"}
+                label={"Entrar para denunciar"}
+                cls={"btn-primary btn-small"}
+              />
+            )}
           </div>
 
           {erro && (
@@ -279,52 +289,29 @@ export function StatsPage() {
                 )}
               </section>
 
-              <section className="panel">
-                <div className="panel-head">
-                  <h3>
-                    {
-                      "Denúncias Registradas"
-                    }
-                  </h3>
+              {usuarioLogado && (
+                <section className="panel">
+                  <div className="panel-head">
+                    <h3>{"Denúncias Registradas"}</h3>
 
-                  <Link
-                    url={
-                      "/minhas-denuncias"
-                    }
-                    label={"Ver todas →"}
-                  />
-                </div>
-
-                {denuncias.length ? (
-                  <RecentItems
-                    reports={
-                      denunciasRecentes
-                    }
-                  />
-                ) : (
-                  <div className="empty-inline">
-                    <p>{"📭"}</p>
-
-                    <p>
-                      {
-                        "Nenhuma denúncia registrada ainda."
-                      }
-                    </p>
-
-                    <ButtonLink
-                      url={
-                        "/minhas-denuncias"
-                      }
-                      label={
-                        "Ver todos os relatórios"
-                      }
-                      cls={
-                        "btn-primary btn-small"
-                      }
+                    <Link
+                      url={"/minhas-denuncias"}
+                      label={"Ver todas →"}
                     />
                   </div>
-                )}
-              </section>
+
+                  {denuncias.length ? (
+                    <RecentItems
+                      reports={denunciasRecentes}
+                    />
+                  ) : (
+                    <div className="empty-inline">
+                      <p>{"📭"}</p>
+                      <p>{"Nenhuma denúncia registrada ainda."}</p>
+                    </div>
+                  )}
+                </section>
+              )}
             </>
           )}
         </div>
